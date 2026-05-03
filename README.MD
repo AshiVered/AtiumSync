@@ -23,6 +23,9 @@ Tested mainly with this phones, but intended to work with all PBAP-compatible ph
 
 #### Devices expected to work but not yet tested
 
+According to the information I gathered, there is a high chance that these devices will work with the software.
+But it's not certain, and of course it doesn't mean that other phones won't fit. I would be very happy to receive information about any phone that you think should work, or even better - if you have tested it and it works.
+
 | Device | OS |
 |--------|----|
 | QLYX Q7 | Mocor 20A |
@@ -74,12 +77,11 @@ if work good, please update me, to add your device to the list :)
 ## To do list
 
 1. Fix parsing calls VCFs
-2. Translate all GUI and code notes to English
-3. Support controling media
-4. Support calls
-5. ~~Improve UI~~ DONE! V0.1
-6. Support SMS (Need phone that supported MAP)
-7. Fix VCF parser (UI00)
+2. Support controling media
+3. Support calls
+4. ~~Improve UI~~ DONE! V0.1
+5. Support SMS (Need phone that supported MAP)
+6. Fix VCF parser (UI00)
 
 ## Will never happen
 
