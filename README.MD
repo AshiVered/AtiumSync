@@ -79,9 +79,8 @@ if work good, please update me, to add your device to the list :)
 1. Fix parsing calls VCFs
 2. Support controling media
 3. Support calls
-4. ~~Improve UI~~ DONE! V0.1
 5. Support SMS (Need phone that supported MAP)
-6. Fix VCF parser (UI00)
+6. Fix VCF parser (UI)
 
 ## Will never happen
 
