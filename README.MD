@@ -76,10 +76,9 @@ if work good, please update me, to add your device to the list :)
 
 ## To do list
 
-1. Fix parsing calls VCFs
-2. Support controling media
-3. Support calls
-5. Support SMS (Need phone that supported MAP)
+1. Support controling media
+2. Support calls
+3. Support SMS (Need phone that supported MAP)
 
 ## Will never happen
 
