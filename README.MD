@@ -80,7 +80,6 @@ if work good, please update me, to add your device to the list :)
 2. Support controling media
 3. Support calls
 5. Support SMS (Need phone that supported MAP)
-6. Fix VCF parser (UI)
 
 ## Will never happen
 
@@ -91,3 +90,8 @@ if work good, please update me, to add your device to the list :)
 1. Solve Android security problems.
 2. Supporting Windows. (Currently, software has based on Linux BlueZ)
 
+## Donation
+
+If you like my work, please buy me coffe :)
+
+https://ko-fi.com/ashivered
