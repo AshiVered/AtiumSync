@@ -26,37 +26,78 @@ def qp_decode(s: str) -> str:
 
 def extract_qp_name(raw_value: str) -> str:
     val = raw_value.strip()
-    while True:
-        old_val = val
-        val = val.lstrip(":;")
-        m = re.match(
-            r"^(URL|CHARSET|UTF-8|UTF8|ENCODING|QUOTED-PRINTABLE|QUOT|QP|ENC|CH|E)"
-            r"(?:=(UTF-8|UTF8|QUOTED-PRINTABLE|QUOT|QP))?", 
-            val, re.IGNORECASE
-        )
-        if m:
-            next_idx = m.end()
-            if next_idx < len(val):
-                next_char = val[next_idx]
-                if m.group(2) is None:
-                    if next_char in (":", ";", "="):
-                        val = val[next_idx:]
-                else:
-                    val = val[next_idx:]
-            else:
-                val = ""
-        if val == old_val:
+    val = re.sub(r"=\r?\n[ \t]?", "", val)  # unfold QP line continuations
+
+    high_byte_re = re.compile(r"=[89A-Fa-f][0-9A-Fa-f]")
+    qp_token = None
+    for token in val.split(";"):
+        if high_byte_re.search(token):
+            qp_token = token
             break
-    parts = val.split(";")
-    candidate = ""
-    for p in parts:
-        if p.strip():
-            candidate = p.strip()
-            break
-    decoded = qp_decode(candidate) if candidate else ""
+
+    if not qp_token:
+        return ""
+
+    m = high_byte_re.search(qp_token)
+    if m:
+        qp_token = qp_token[m.start():]
+
+    decoded = qp_decode(qp_token.rstrip()) if qp_token else ""
     return re.sub(r"\s{2,}", " ", decoded).strip()
 
-def parse_vcf_unified(filename: str) -> list[tuple[str, str, str]]:
+
+def decode_contact_name(raw_value: str) -> str:
+    val = raw_value.strip()
+    decoded = qp_decode(val)  
+    parts = decoded.split(";")
+    for part in parts:
+        part = part.strip()
+        if part and part not in ("2.1", "3.0", "4.0"):
+            return re.sub(r"\s{2,}", " ", part).strip()
+    return ""
+
+def parse_vcf_contacts(filename: str) -> list[tuple[str, str]]:
+    results = []
+    if not os.path.exists(filename):
+        return results
+    with open(filename, "r", encoding="utf-8", errors="ignore") as f:
+        raw = f.read()
+    unfolded = re.sub(r"=\r?\n[ \t]?", "", raw)
+    unfolded = re.sub(r"\r?\n[ \t]", "", unfolded)
+    for card_raw in unfolded.split("BEGIN:VCARD"):
+        if not card_raw.strip():
+            continue
+        name, phone = "", ""
+        lines = [l.strip() for l in card_raw.splitlines() if l.strip()]
+        for line in lines:
+            if re.match(r"TEL\b", line, re.I):
+                m = re.search(r":([0-9\+\*#]+)", line)
+                if m: phone = m.group(1); break
+        if not phone:
+            for line in lines:
+                if re.match(r"N[;:]", line, re.I) and "TEL" in line.upper():
+                    m = re.search(r"TEL[^:]*:([0-9\+\*#]+)", line, re.I)
+                    if m: phone = m.group(1); break
+        if not phone: continue
+
+        for prefix in (r"FN[;:]", r"N[;:]"):
+            if name: break
+            for line in lines:
+                if not re.match(prefix, line, re.I) or re.search(r"\bTEL[;:]", line, re.I):
+                    continue
+                colon = line.find(":")
+                if colon == -1: continue
+                raw_val = line[colon + 1:]
+                is_qp = "QUOTED-PRINTABLE" in line.upper() or "ENCODING=" in line.upper()
+                candidate = decode_contact_name(raw_val) if is_qp else re.sub(r";+", " ", raw_val).strip()
+                if candidate and candidate not in ("2.1", "3.0", "4.0"):
+                    name = candidate
+                    break
+        display_name = ("\u200f" + name) if name else "\u200fUnknown Number"
+        results.append((display_name, phone))
+    return results
+
+def parse_call_log_vcf(filename: str) -> list[tuple[str, str, str]]:
     results = []
     if not os.path.exists(filename):
         return results
@@ -69,16 +110,20 @@ def parse_vcf_unified(filename: str) -> list[tuple[str, str, str]]:
             continue
         name, phone, call_type = "", "", "Unknown"
         lines = [l.strip() for l in card_raw.splitlines() if l.strip()]
+
+        # Extract phone number
         for line in lines:
             if re.match(r"TEL\b", line, re.I):
                 m = re.search(r":([0-9\+\*#]+)", line)
                 if m: phone = m.group(1); break
+
         if not phone:
             for line in lines:
                 if re.match(r"N[;:]", line, re.I) and "TEL" in line.upper():
                     m = re.search(r"TEL[^:]*:([0-9\+\*#]+)", line, re.I)
                     if m: phone = m.group(1); break
-        if not phone: continue
+
+        # Extract call type
         for line in lines:
             if line.upper().startswith("X-IRMC-CALL-DATETIME"):
                 u = line.upper()
@@ -87,20 +132,34 @@ def parse_vcf_unified(filename: str) -> list[tuple[str, str, str]]:
                 elif "MISSED" in u: call_type = "Missed"
                 else: call_type = "Rejected"
                 break
+
         for prefix in (r"FN[;:]", r"N[;:]"):
             if name: break
             for line in lines:
-                if not re.match(prefix, line, re.I) or re.search(r"\bTEL[;:]", line, re.I):
+                if not re.match(prefix, line, re.I):
+                    continue
+                if re.search(r"\bTEL[;:]", line, re.I):
                     continue
                 colon = line.find(":")
                 if colon == -1: continue
                 raw_val = line[colon + 1:]
                 is_qp = "QUOTED-PRINTABLE" in line.upper() or "ENCODING=" in line.upper()
-                candidate = extract_qp_name(raw_val) if is_qp else re.sub(r";+", " ", raw_val).strip()
+                if is_qp:
+                    candidate = extract_qp_name(raw_val)
+                else:
+                    candidate = re.sub(r";+", " ", raw_val).strip()
                 if candidate and candidate not in ("2.1", "3.0", "4.0"):
                     name = candidate
                     break
-        display_name = ("\u200f" + name) if name else "\u200fUnknown Number"
+
+        display_name = ""
+        if not phone and not name:
+            display_name = "\u200fPrivate Number"  # No phone and no name -> Private Number
+        elif not name:
+            display_name = "\u200fUnknown Number"  # Phone present, but no name -> Unknown Number
+        else:
+            display_name = "\u200f" + name
+
         results.append((display_name, phone, call_type))
     return results
 
@@ -159,7 +218,7 @@ class BluetoothApp(wx.Frame):
         main_layout.Add(middle_layout, 1, wx.EXPAND)
         
         # Footer
-        footer = wx.StaticText(main_panel, label="AtiumSync V0.1 by Ashi Vered")
+        footer = wx.StaticText(main_panel, label="AtiumSync V0.2 by Ashi Vered")
         main_layout.Add(footer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
         
         main_panel.SetSizer(main_layout)
@@ -220,7 +279,7 @@ class BluetoothApp(wx.Frame):
         calls_main_sizer.Add(self.call_tabs, 1, wx.EXPAND)
         self.page_calls.SetSizer(calls_main_sizer)
         
-        # Add to container (FIXED: added label argument)
+        # Add to container
         self.container.AddPage(self.page_scan, "Scan")
         self.container.AddPage(self.page_contacts, "Contacts")
         self.container.AddPage(self.page_calls, "Calls")
@@ -269,13 +328,20 @@ class BluetoothApp(wx.Frame):
 
     def load_data(self):
         for t in self.trees.values(): t.DeleteAllItems()
-        file_map = [(VCF_FILE, "contacts"), (IN_CALLS, "in"), (OUT_CALLS, "out"), (MISSED_CALLS, "missed")]
-        for vcf_file, key in file_map:
-            for name, phone, _ in parse_vcf_unified(vcf_file):
+        file_map_contacts = [(VCF_FILE, "contacts")]
+        for vcf_file, key in file_map_contacts:
+            for name, phone in parse_vcf_contacts(vcf_file):
                 idx = self.trees[key].GetItemCount()
                 self.trees[key].InsertItem(idx, name); self.trees[key].SetItem(idx, 1, phone)
+        
+        file_map_calls = [(IN_CALLS, "in"), (OUT_CALLS, "out"), (MISSED_CALLS, "missed")]
+        for vcf_file, key in file_map_calls:
+            for name, phone, _ in parse_call_log_vcf(vcf_file):
+                idx = self.trees[key].GetItemCount()
+                self.trees[key].InsertItem(idx, name); self.trees[key].SetItem(idx, 1, phone)
+
         if os.path.exists(COMBINED_CALLS):
-            for name, phone, call_type in parse_vcf_unified(COMBINED_CALLS):
+            for name, phone, call_type in parse_call_log_vcf(COMBINED_CALLS):
                 idx = self.trees["all"].GetItemCount()
                 self.trees["all"].InsertItem(idx, name); self.trees["all"].SetItem(idx, 1, phone); self.trees["all"].SetItem(idx, 2, call_type)
                 if call_type == "Rejected":
