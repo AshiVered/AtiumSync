@@ -14,6 +14,7 @@ Tested mainly with this phones, but intended to work with all PBAP-compatible ph
 | Device | OS | Tested By | Working Properly | Notes |
 |--------|----|-----------|------------------|-------|
 | Navi C1       | XXXXXX   | AshiVered         | Yes (Channel: 6)                |       |
+| FirstPhone PRO30       | Mocor 20A   | AshiVered         | Yes (Channel: 7)                |       |
 | Nokia 225 4G 2020       | Mocor 20A   | AshiVered         | No                | Doesn't support PBAP      |
 | Nokia 3210 4G 2024       | Mocor 20A   | AshiVered         | No                | Doesn't support PBAP      |
 | Xiaomi Qin 1S+       | MocorDroid 5 (Android KitKat)   | AshiVered         | No                | Supports PBAP, but connection is refused (likely Android security limitation)      |
@@ -33,7 +34,6 @@ But it's not certain, and of course it doesn't mean that other phones won't fit.
 | Escolls 4*4 | Mocor 20A |
 | Escolls 5*5 | Mocor 20A |
 | Escolls Flip 2 | Mocor 20A |
-| FisrtPhone Pro 30 | Mocor 20A |
 
 #### Adding support for a new device
 
