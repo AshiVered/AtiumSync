@@ -17,6 +17,7 @@ Tested mainly with this phones, but intended to work with all PBAP-compatible ph
 | FirstPhone PRO30       | Mocor 20A   | AshiVered         | Yes (Channel: 7)                |       |
 | Nokia 225 4G 2020       | Mocor 20A   | AshiVered         | No                | Doesn't support PBAP      |
 | Nokia 3210 4G 2024       | Mocor 20A   | AshiVered         | No                | Doesn't support PBAP      |
+| Nokia 215 4G 2024       | Mocor 20A   | AshiVered         | No                | Doesn't support PBAP      |
 | Xiaomi Qin 1S+       | MocorDroid 5 (Android KitKat)   | AshiVered         | No                | Supports PBAP, but connection is refused (likely Android security limitation)      |
 | Xiaomi Qin K25       | Android 14   | AshiVered         | No                | Supports PBAP, but connection is refused (likely Android security limitation)      |
 | Nokia C5 (RM 645)      | Symbian 9.3   | AshiVered         | No                | Supports PBAP, but an unknown error occurs      |
